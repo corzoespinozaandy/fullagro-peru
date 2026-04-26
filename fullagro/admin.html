@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin — FullAgro Perú</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --verde: #2D6A2F; --verde-claro: #4CAF50; --verde-palido: #E8F5E9;
+    --verde-oscuro: #1B4D1D; --dorado: #C8A84B; --crema: #FDFAF4;
+    --gris-texto: #2C2C2A; --gris-suave: #F5F5F0; --blanco: #FFFFFF;
+    --peligro: #C0392B; --peligro-bg: #FEECEC;
+    --font: 'Sora', sans-serif; --font-body: 'DM Sans', sans-serif;
+    --sidebar-w: 240px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-body); color: var(--gris-texto); background: var(--gris-suave); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--verde-oscuro), var(--verde));
+  }
+  .login-card {
+    background: #fff; border-radius: 24px; padding: 3rem 2.5rem;
+    width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    text-align: center;
+  }
+  .login-logo { font-family: var(--font); font-size: 24px; font-weight: 800; color: var(--verde-oscuro); margin-bottom: .3rem; }
+  .login-logo span { color: var(--dorado); }
+  .login-sub { font-size: 13px; color: #aaa; margin-bottom: 2rem; }
+  .login-card .form-group { text-align: left; margin-bottom: 1rem; }
+  .login-card label { font-family: var(--font); font-size: 12px; font-weight: 600; color: var(--verde-oscuro); display: block; margin-bottom: 5px; letter-spacing: .04em; }
+  .login-card input { width: 100%; font-family: var(--font-body); font-size: 14px; border: 1.5px solid rgba(45,106,47,0.2); border-radius: 10px; padding: 11px 14px; outline: none; transition: border-color .2s; }
+  .login-card input:focus { border-color: var(--verde); }
+  .login-btn { width: 100%; margin-top: 1rem; background: var(--verde); color: #fff; font-family: var(--font); font-size: 14px; font-weight: 700; padding: 13px; border-radius: 12px; border: none; cursor: pointer; transition: background .2s; }
+  .login-btn:hover { background: var(--verde-oscuro); }
+  .login-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .login-error { color: var(--peligro); font-size: 13px; margin-top: .8rem; display: none; background: var(--peligro-bg); padding: 10px 14px; border-radius: 8px; }
+
+  /* ── ADMIN LAYOUT ── */
+  #admin-screen { display: none; min-height: 100vh; }
+  .admin-layout { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: var(--sidebar-w); background: var(--verde-oscuro); flex-shrink: 0;
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  }
+  .sidebar-logo { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-logo-text { font-family: var(--font); font-size: 16px; font-weight: 800; color: #fff; }
+  .sidebar-logo-text span { color: var(--dorado); }
+  .sidebar-logo-sub { font-size: 10.5px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 1rem 0; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 1.5rem; color: rgba(255,255,255,0.6);
+    font-family: var(--font); font-size: 13.5px; font-weight: 600;
+    cursor: pointer; transition: .2s; border-left: 3px solid transparent;
+  }
+  .sidebar-item:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .sidebar-item.active { color: #fff; background: rgba(255,255,255,0.1); border-left-color: var(--dorado); }
+  .sidebar-item .icon { font-size: 18px; width: 24px; text-align: center; }
+  .sidebar-footer { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-logout { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.5); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; transition: color .2s; }
+  .sidebar-logout:hover { color: #fff; }
+  .sidebar-user { font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 10px; word-break: break-all; }
+
+  .main-content { margin-left: var(--sidebar-w); flex: 1; padding: 2rem; min-width: 0; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-family: var(--font); font-size: 22px; font-weight: 800; color: var(--verde-oscuro); margin-bottom: .3rem; }
+  .page-sub { font-size: 13.5px; color: #888; margin-bottom: 2rem; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { background: var(--blanco); border-radius: 14px; padding: 1.3rem 1.5rem; border: 1.5px solid rgba(45,106,47,0.08); box-shadow: 0 2px 12px rgba(45,106,47,0.07); }
+  .stat-num { font-family: var(--font); font-size: 28px; font-weight: 800; color: var(--verde); }
+  .stat-label { font-size: 12.5px; color: #aaa; margin-top: 2px; }
+
+  .card { background: var(--blanco); border-radius: 16px; border: 1.5px solid rgba(45,106,47,0.08); box-shadow: 0 2px 16px rgba(45,106,47,0.07); padding: 1.8rem; margin-bottom: 1.5rem; }
+  .card-title { font-family: var(--font); font-size: 15px; font-weight: 700; color: var(--verde-oscuro); margin-bottom: 1.3rem; display: flex; align-items: center; justify-content: space-between; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label { font-family: var(--font); font-size: 11.5px; font-weight: 700; color: var(--verde-oscuro); letter-spacing: .04em; text-transform: uppercase; }
+  .form-group input, .form-group select, .form-group textarea {
+    font-family: var(--font-body); font-size: 14px;
+    border: 1.5px solid rgba(45,106,47,0.2); border-radius: 10px;
+    padding: 10px 14px; color: var(--gris-texto); background: var(--crema);
+    outline: none; transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--verde); background: #fff; }
+
+  .img-upload-area {
+    border: 2px dashed rgba(45,106,47,0.25); border-radius: 12px;
+    padding: 1.5rem; text-align: center; cursor: pointer; transition: .2s;
+    background: var(--crema);
+  }
+  .img-upload-area:hover { border-color: var(--verde); background: var(--verde-palido); }
+  .img-upload-area.has-img { padding: .5rem; }
+  .img-upload-area img { max-height: 140px; border-radius: 8px; object-fit: cover; }
+  .img-upload-label { font-family: var(--font); font-size: 13px; color: #aaa; }
+  .img-upload-label strong { color: var(--verde); }
+  #img-file { display: none; }
+
+  .btn { font-family: var(--font); font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; transition: .2s; display: inline-flex; align-items: center; gap: 7px; }
+  .btn-primary { background: var(--verde); color: #fff; }
+  .btn-primary:hover { background: var(--verde-oscuro); }
+  .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+  .btn-danger { background: var(--peligro-bg); color: var(--peligro); }
+  .btn-danger:hover { background: var(--peligro); color: #fff; }
+  .btn-edit { background: var(--verde-palido); color: var(--verde); }
+  .btn-edit:hover { background: var(--verde); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th { text-align: left; padding: 10px 14px; font-family: var(--font); font-size: 11px; font-weight: 700; color: #bbb; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1.5px solid rgba(45,106,47,0.08); white-space: nowrap; }
+  tbody td { padding: 12px 14px; border-bottom: 1px solid rgba(45,106,47,0.06); vertical-align: middle; }
+  tbody tr:hover td { background: var(--verde-palido); }
+  .prod-thumb { width: 44px; height: 44px; border-radius: 8px; background: var(--verde-palido); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .prod-thumb img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+  .prod-name { font-family: var(--font); font-size: 13.5px; font-weight: 700; color: var(--verde-oscuro); }
+  .prod-desc-mini { font-size: 11.5px; color: #aaa; }
+  .badge { display: inline-block; font-family: var(--font); font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 100px; }
+  .badge-new { background: #FFF8E1; color: #F57F17; }
+  .badge-cat { background: var(--verde-palido); color: var(--verde); }
+  .actions { display: flex; gap: 6px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: #fff; border-radius: 20px; padding: 2rem; width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); transform: scale(.96); transition: transform .25s; max-height: 90vh; overflow-y: auto; }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal-title { font-family: var(--font); font-size: 18px; font-weight: 800; color: var(--verde-oscuro); margin-bottom: 1.5rem; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.5rem; }
+
+  .config-section-title { font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--verde-oscuro); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 1.5px solid rgba(45,106,47,0.1); }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); z-index: 999; background: var(--verde); color: #fff; font-family: var(--font); font-size: 14px; font-weight: 600; padding: 14px 24px; border-radius: 12px; box-shadow: 0 8px 30px rgba(45,106,47,0.35); opacity: 0; transition: .35s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.error { background: var(--peligro); }
+
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media(max-width:768px){
+    .sidebar { width: 200px; }
+    .main-content { margin-left: 200px; padding: 1.2rem; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  @media(max-width:600px){
+    .sidebar { transform: translateX(-100%); transition: transform .3s; }
+    .sidebar.open { transform: translateX(0); }
+    .main-content { margin-left: 0; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div style="font-size:48px;margin-bottom:.8rem;">🌿</div>
+    <div class="login-logo">Full<span>Agro</span> Perú</div>
+    <div class="login-sub">Panel de Administración</div>
+    <div class="form-group">
+      <label>Correo electrónico</label>
+      <input type="email" id="login-email" placeholder="ventasfullagroperu@gmail.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-error" id="login-error">❌ Correo o contraseña incorrectos. Verifica tus datos.</div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Ingresar al panel</button>
+    <div style="margin-top:1.5rem;font-size:12px;color:#ccc;">
+      Acceso exclusivo para administradores
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN ══ -->
+<div id="admin-screen">
+  <div class="admin-layout">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-text">Full<span>Agro</span> Perú</div>
+        <div class="sidebar-logo-sub">Panel de administración</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-item active" data-page="dashboard"><span class="icon">📊</span> Dashboard</div>
+        <div class="sidebar-item" data-page="productos"><span class="icon">📦</span> Productos</div>
+        <div class="sidebar-item" data-page="nuevo"><span class="icon">➕</span> Agregar producto</div>
+        <div class="sidebar-item" data-page="config"><span class="icon">⚙️</span> Configuración</div>
+        <div style="margin-top:1rem;padding:0 1.5rem 0.5rem;font-size:11px;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:.08em;">Web</div>
+        <div class="sidebar-item" onclick="window.open('index.html','_blank')"><span class="icon">🌐</span> Ver página web</div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user">—</div>
+        <div class="sidebar-logout" onclick="doLogout()">🚪 Cerrar sesión</div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Resumen general del catálogo y la tienda.</div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-num" id="dash-total">—</div><div class="stat-label">Productos totales</div></div>
+          <div class="stat-card"><div class="stat-num" id="dash-nuevos">—</div><div class="stat-label">Marcados NUEVO</div></div>
+          <div class="stat-card"><div class="stat-num" id="dash-cats">5</div><div class="stat-label">Categorías</div></div>
+          <div class="stat-card"><div class="stat-num" style="font-size:20px;color:var(--dorado);">✓</div><div class="stat-label">Web en línea</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Últimos productos agregados</div>
+          <div class="table-wrap"><table id="dash-table">
+            <thead><tr><th></th><th>Nombre</th><th>Categoría</th><th>Precio</th></tr></thead>
+            <tbody id="dash-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- LISTA PRODUCTOS -->
+      <div class="page" id="page-productos">
+        <div class="page-title">Gestionar productos</div>
+        <div class="page-sub">Edita, elimina o actualiza precios de tus productos.</div>
+        <div class="card">
+          <div class="card-title">
+            <span id="prod-count-title">Todos los productos</span>
+            <input type="text" id="admin-search" placeholder="🔍 Buscar..." style="font-family:var(--font-body);font-size:13px;padding:7px 14px;border:1.5px solid rgba(45,106,47,0.2);border-radius:100px;outline:none;width:200px;">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Imagen</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Nuevo</th><th>Acciones</th></tr></thead>
+              <tbody id="prod-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGREGAR PRODUCTO -->
+      <div class="page" id="page-nuevo">
+        <div class="page-title">Agregar producto</div>
+        <div class="page-sub">Completa el formulario para agregar un nuevo producto al catálogo.</div>
+        <div class="card">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label>Nombre del producto</label>
+              <input type="text" id="f-nombre" placeholder="Ej: Nitrato de Amonio 25kg">
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="f-cat">
+                <option value="fertilizantes">Fertilizantes</option>
+                <option value="agroquimicos">Agroquímicos</option>
+                <option value="semillas">Semillas</option>
+                <option value="herramientas">Herramientas</option>
+                <option value="veterinaria">Veterinaria</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Precio (S/)</label>
+              <input type="number" id="f-precio" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label>Unidad</label>
+              <input type="text" id="f-unidad" placeholder="Ej: por saco, por litro">
+            </div>
+            <div class="form-group">
+              <label>Emoji (opcional)</label>
+              <input type="text" id="f-emoji" placeholder="🌱" maxlength="2">
+            </div>
+            <div class="form-group full">
+              <label>Descripción</label>
+              <textarea id="f-desc" rows="3" placeholder="Descripción del producto, uso recomendado, características..."></textarea>
+            </div>
+            <div class="form-group full">
+              <label>Foto del producto</label>
+              <div class="img-upload-area" id="upload-area" onclick="document.getElementById('img-file').click()">
+                <div class="img-upload-label" id="upload-label">
+                  📷 <strong>Haz clic para subir una foto</strong><br>
+                  <span style="font-size:12px;">JPG, PNG — máx. 2MB</span>
+                </div>
+              </div>
+              <input type="file" id="img-file" accept="image/*" onchange="previewImagen(this)">
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;">
+              <input type="checkbox" id="f-nuevo" style="width:18px;height:18px;accent-color:var(--verde);flex-shrink:0;">
+              <label for="f-nuevo" style="cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;">Marcar como NUEVO</label>
+            </div>
+          </div>
+          <div style="margin-top:1.5rem;display:flex;gap:10px;">
+            <button class="btn btn-primary" id="btn-guardar" onclick="guardarProducto()">
+              <span id="btn-guardar-text">Guardar producto →</span>
+            </button>
+            <button class="btn btn-edit" onclick="resetForm()">Limpiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFIGURACIÓN -->
+      <div class="page" id="page-config">
+        <div class="page-title">Configuración</div>
+        <div class="page-sub">Edita los textos, datos de contacto y contenido de la página web.</div>
+
+        <div class="card">
+          <div class="config-section-title">📞 Datos de contacto</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Teléfono / WhatsApp</label><input type="text" id="cfg-telefono" placeholder="+51 999 999 999"></div>
+            <div class="form-group"><label>Correo electrónico</label><input type="email" id="cfg-correo" placeholder="ventasfullagroperu@gmail.com"></div>
+            <div class="form-group full"><label>Dirección</label><input type="text" id="cfg-direccion" placeholder="Lima, Perú — Despacho nacional"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="config-section-title">🏠 Sección Inicio (Hero)</div>
+          <div class="form-grid">
+            <div class="form-group full"><label>Título principal</label><input type="text" id="cfg-hero-titulo" placeholder="Todo lo que tu campo necesita para crecer"></div>
+            <div class="form-group full"><label>Subtítulo</label><textarea id="cfg-hero-subtitulo" rows="2" placeholder="Descripción breve del negocio..."></textarea></div>
+            <div class="form-group"><label>Estadística 1 (ej: +500)</label><input type="text" id="cfg-stat1" placeholder="+500"></div>
+            <div class="form-group"><label>Estadística 2 (ej: +12)</label><input type="text" id="cfg-stat2" placeholder="+12"></div>
+            <div class="form-group"><label>Estadística 3 (ej: +1,800)</label><input type="text" id="cfg-stat3" placeholder="+1,800"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="config-section-title">🏢 Sección Nosotros</div>
+          <div class="form-grid">
+            <div class="form-group full"><label>Título</label><input type="text" id="cfg-nosotros-titulo" placeholder="Más de 12 años..."></div>
+            <div class="form-group full"><label>Texto descriptivo</label><textarea id="cfg-nosotros-texto" rows="3" placeholder="Descripción de la empresa..."></textarea></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="config-section-title">🔐 Cambiar contraseña admin</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Nueva contraseña</label><input type="password" id="cfg-pass-new" placeholder="Mínimo 6 caracteres"></div>
+            <div class="form-group"><label>Confirmar contraseña</label><input type="password" id="cfg-pass-confirm" placeholder="Repite la contraseña"></div>
+          </div>
+          <div style="margin-top:1rem;">
+            <button class="btn btn-edit" onclick="cambiarPassword()">Actualizar contraseña</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="guardarConfig()" style="margin-top:.5rem;">
+          💾 Guardar toda la configuración
+        </button>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Editar producto</div>
+    <input type="hidden" id="m-id">
+    <div class="form-grid">
+      <div class="form-group full"><label>Nombre</label><input type="text" id="m-nombre"></div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <select id="m-cat">
+          <option value="fertilizantes">Fertilizantes</option>
+          <option value="agroquimicos">Agroquímicos</option>
+          <option value="semillas">Semillas</option>
+          <option value="herramientas">Herramientas</option>
+          <option value="veterinaria">Veterinaria</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Precio (S/)</label><input type="number" id="m-precio" step="0.01"></div>
+      <div class="form-group"><label>Unidad</label><input type="text" id="m-unidad"></div>
+      <div class="form-group"><label>Emoji</label><input type="text" id="m-emoji" maxlength="2"></div>
+      <div class="form-group full"><label>Descripción</label><textarea id="m-desc" rows="3"></textarea></div>
+      <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;">
+        <input type="checkbox" id="m-nuevo" style="width:18px;height:18px;accent-color:var(--verde);">
+        <label for="m-nuevo" style="cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;">Marcar como NUEVO</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-edit" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicion()">Guardar cambios →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE CONFIG ──
+const SUPABASE_URL = 'https://uoicsiuspkqyjtqtfytq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvaWNzaXVzcGtxeWp0cXRmeXRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNDU5NDAsImV4cCI6MjA5MjcyMTk0MH0.lvO0WaYD_KGE_J8HyHiwHzg5DxeyxMEpDjSgDVd0Y_s';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allProds = [];
+
+// ── LOGIN CON SUPABASE AUTH ──
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
+
+  if (!email || !pass) {
+    err.style.display = 'block';
+    err.textContent = '❌ Por favor ingresa tu correo y contraseña.';
+    return;
+  }
+
+  err.style.display = 'none';
+  btn.innerHTML = '<span class="spinner"></span> Verificando...';
+  btn.disabled = true;
+
+  try {
+    const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    document.getElementById('sidebar-user').textContent = data.user.email;
+    mostrarAdmin();
+  } catch(e) {
+    err.style.display = 'block';
+    err.textContent = '❌ Correo o contraseña incorrectos.';
+  }
+
+  btn.innerHTML = 'Ingresar al panel';
+  btn.disabled = false;
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('login-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('login-pass').focus();
+});
+
+async function doLogout() {
+  await db.auth.signOut();
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+function mostrarAdmin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  cargarTodo();
+}
+
+// ── VERIFICAR SESIÓN AL CARGAR ──
+window.addEventListener('load', async () => {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    document.getElementById('sidebar-user').textContent = session.user.email;
+    mostrarAdmin();
+  }
+});
+
+// ── CARGAR TODO ──
+async function cargarTodo() {
+  await Promise.all([cargarProductos(), cargarConfig()]);
+  actualizarDashboard();
+}
+
+// ── PRODUCTOS ──
+async function cargarProductos() {
+  const { data, error } = await db.from('productos').select('*').order('created_at', { ascending: false });
+  if (error) { showToast('Error al cargar productos', true); return; }
+  allProds = data || [];
+  renderTablaProductos();
+}
+
+function renderTablaProductos(filtro = '') {
+  const tbody = document.getElementById('prod-tbody');
+  const filtered = allProds.filter(p => !filtro || p.nombre.toLowerCase().includes(filtro.toLowerCase()));
+  document.getElementById('prod-count-title').textContent = filtered.length + ' producto' + (filtered.length !== 1 ? 's' : '');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#aaa;">Sin resultados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td>
+        <div class="prod-thumb">
+          ${p.imagen_url ? `<img src="${p.imagen_url}" alt="">` : p.emoji || '📦'}
+        </div>
+      </td>
+      <td>
+        <div class="prod-name">${p.nombre}</div>
+        <div class="prod-desc-mini">${(p.descripcion||'').substring(0,50)}${(p.descripcion||'').length>50?'…':''}</div>
+      </td>
+      <td><span class="badge badge-cat">${catLabel(p.categoria)}</span></td>
+      <td><strong style="font-family:var(--font);color:var(--verde);">S/ ${parseFloat(p.precio).toFixed(2)}</strong><br><small style="color:#aaa;">${p.unidad||''}</small></td>
+      <td>${p.nuevo ? '<span class="badge badge-new">NUEVO</span>' : '<span style="color:#ccc;font-size:12px;">—</span>'}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-edit btn-sm" onclick="abrirEditar('${p.id}')">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarProducto('${p.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('admin-search').addEventListener('input', e => renderTablaProductos(e.target.value));
+
+// ── DASHBOARD ──
+function actualizarDashboard() {
+  document.getElementById('dash-total').textContent = allProds.length;
+  document.getElementById('dash-nuevos').textContent = allProds.filter(p => p.nuevo).length;
+  const recent = allProds.slice(0, 5);
+  document.getElementById('dash-tbody').innerHTML = recent.length
+    ? recent.map(p => `
+      <tr>
+        <td><div class="prod-thumb" style="font-size:20px;">${p.emoji||'📦'}</div></td>
+        <td><div class="prod-name">${p.nombre}</div></td>
+        <td><span class="badge badge-cat">${catLabel(p.categoria)}</span></td>
+        <td><strong style="font-family:var(--font);color:var(--verde);">S/ ${parseFloat(p.precio).toFixed(2)}</strong></td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:2rem;color:#aaa;">No hay productos aún. ¡Agrega el primero!</td></tr>';
+}
+
+// ── GUARDAR NUEVO PRODUCTO ──
+let imgFile = null;
+
+function previewImagen(input) {
+  imgFile = input.files[0];
+  if (!imgFile) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const area = document.getElementById('upload-area');
+    area.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+    area.classList.add('has-img');
+  };
+  reader.readAsDataURL(imgFile);
+}
+
+async function guardarProducto() {
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const precio = parseFloat(document.getElementById('f-precio').value);
+  if (!nombre) { showToast('El nombre del producto es obligatorio', true); return; }
+  if (isNaN(precio) || precio <= 0) { showToast('Ingresa un precio válido', true); return; }
+
+  const btn = document.getElementById('btn-guardar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+  let imagen_url = null;
+
+  if (imgFile) {
+    const ext = imgFile.name.split('.').pop();
+    const path = `productos/${Date.now()}.${ext}`;
+    const { error: upErr } = await db.storage.from('imagenes').upload(path, imgFile);
+    if (!upErr) {
+      const { data } = db.storage.from('imagenes').getPublicUrl(path);
+      imagen_url = data.publicUrl;
+    }
+  }
+
+  const prod = {
+    nombre,
+    categoria: document.getElementById('f-cat').value,
+    precio,
+    unidad: document.getElementById('f-unidad').value.trim() || 'por unidad',
+    descripcion: document.getElementById('f-desc').value.trim(),
+    emoji: document.getElementById('f-emoji').value || '📦',
+    nuevo: document.getElementById('f-nuevo').checked,
+    imagen_url,
+  };
+
+  const { error } = await db.from('productos').insert([prod]);
+  if (error) {
+    showToast('Error al guardar el producto', true);
+  } else {
+    await cargarProductos();
+    actualizarDashboard();
+    resetForm();
+    showToast('✅ Producto guardado correctamente');
+    navigateTo('productos');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Guardar producto →';
+  imgFile = null;
+}
+
+function resetForm() {
+  ['f-nombre','f-precio','f-unidad','f-desc','f-emoji'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-nuevo').checked = false;
+  document.getElementById('upload-area').innerHTML = '<div class="img-upload-label">📷 <strong>Haz clic para subir una foto</strong><br><span style="font-size:12px;">JPG, PNG — máx. 2MB</span></div>';
+  document.getElementById('upload-area').classList.remove('has-img');
+  document.getElementById('img-file').value = '';
+  imgFile = null;
+}
+
+// ── EDITAR ──
+function abrirEditar(id) {
+  const p = allProds.find(x => String(x.id) === String(id));
+  if (!p) return;
+  document.getElementById('m-id').value = p.id;
+  document.getElementById('m-nombre').value = p.nombre;
+  document.getElementById('m-cat').value = p.categoria;
+  document.getElementById('m-precio').value = p.precio;
+  document.getElementById('m-unidad').value = p.unidad || '';
+  document.getElementById('m-emoji').value = p.emoji || '';
+  document.getElementById('m-desc').value = p.descripcion || '';
+  document.getElementById('m-nuevo').checked = !!p.nuevo;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cerrarModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModal(); });
+
+async function guardarEdicion() {
+  const id = document.getElementById('m-id').value;
+  const updates = {
+    nombre: document.getElementById('m-nombre').value.trim(),
+    categoria: document.getElementById('m-cat').value,
+    precio: parseFloat(document.getElementById('m-precio').value),
+    unidad: document.getElementById('m-unidad').value.trim(),
+    emoji: document.getElementById('m-emoji').value,
+    descripcion: document.getElementById('m-desc').value.trim(),
+    nuevo: document.getElementById('m-nuevo').checked,
+  };
+  if (!updates.nombre || isNaN(updates.precio)) { showToast('Datos inválidos', true); return; }
+  const { error } = await db.from('productos').update(updates).eq('id', id);
+  if (error) { showToast('Error al actualizar', true); }
+  else {
+    await cargarProductos();
+    actualizarDashboard();
+    cerrarModal();
+    showToast('✅ Producto actualizado');
+  }
+}
+
+// ── ELIMINAR ──
+async function eliminarProducto(id) {
+  if (!confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')) return;
+  const { error } = await db.from('productos').delete().eq('id', id);
+  if (error) { showToast('Error al eliminar', true); return; }
+  await cargarProductos();
+  actualizarDashboard();
+  showToast('✅ Producto eliminado');
+}
+
+// ── CONFIG ──
+async function cargarConfig() {
+  try {
+    const { data } = await db.from('config').select('*');
+    if (!data) return;
+    data.forEach(r => {
+      const el = document.getElementById('cfg-' + r.clave.replace(/_/g, '-'));
+      if (el) el.value = r.valor;
+    });
+  } catch(e) {}
+}
+
+async function guardarConfig() {
+  const campos = [
+    { id:'cfg-telefono',       clave:'telefono' },
+    { id:'cfg-correo',         clave:'correo' },
+    { id:'cfg-direccion',      clave:'direccion' },
+    { id:'cfg-hero-titulo',    clave:'hero_titulo' },
+    { id:'cfg-hero-subtitulo', clave:'hero_subtitulo' },
+    { id:'cfg-stat1',          clave:'stat_productos' },
+    { id:'cfg-stat2',          clave:'stat_anios' },
+    { id:'cfg-stat3',          clave:'stat_clientes' },
+    { id:'cfg-nosotros-titulo',clave:'nosotros_titulo' },
+    { id:'cfg-nosotros-texto', clave:'nosotros_texto' },
+  ];
+  const upserts = campos
+    .map(c => ({ clave: c.clave, valor: document.getElementById(c.id).value.trim() }))
+    .filter(x => x.valor);
+  const { error } = await db.from('config').upsert(upserts, { onConflict: 'clave' });
+  if (error) showToast('Error al guardar configuración', true);
+  else showToast('✅ Configuración guardada');
+}
+
+async function cambiarPassword() {
+  const p1 = document.getElementById('cfg-pass-new').value;
+  const p2 = document.getElementById('cfg-pass-confirm').value;
+  if (!p1 || p1.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', true); return; }
+  if (p1 !== p2) { showToast('Las contraseñas no coinciden', true); return; }
+  const { error } = await db.auth.updateUser({ password: p1 });
+  if (error) showToast('Error al cambiar contraseña', true);
+  else {
+    showToast('✅ Contraseña actualizada');
+    document.getElementById('cfg-pass-new').value = '';
+    document.getElementById('cfg-pass-confirm').value = '';
+  }
+}
+
+// ── NAVEGACIÓN ──
+document.querySelectorAll('.sidebar-item[data-page]').forEach(item => {
+  item.addEventListener('click', () => navigateTo(item.dataset.page));
+});
+function navigateTo(page) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.querySelector(`.sidebar-item[data-page="${page}"]`)?.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+}
+
+// ── HELPERS ──
+function catLabel(cat) {
+  return {fertilizantes:'Fertilizantes',agroquimicos:'Agroquímicos',semillas:'Semillas',herramientas:'Herramientas',veterinaria:'Veterinaria'}[cat] || cat;
+}
+function showToast(msg, error=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (error ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
