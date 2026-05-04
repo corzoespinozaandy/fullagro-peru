@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FullAgro Perú S.A.C. — Soluciones Agropecuarias</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --verde: #2D6A2F;
+    --verde-claro: #4CAF50;
+    --verde-palido: #E8F5E9;
+    --verde-oscuro: #1B4D1D;
+    --dorado: #C8A84B;
+    --dorado-claro: #F0D98B;
+    --crema: #FDFAF4;
+    --gris-texto: #2C2C2A;
+    --gris-suave: #F5F5F0;
+    --blanco: #FFFFFF;
+    --sombra: 0 4px 24px rgba(45,106,47,0.10);
+    --radius: 14px;
+    --radius-lg: 20px;
+    --font: 'Sora', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font-body); color: var(--gris-texto); background: var(--crema); overflow-x: hidden; }
+
+  #topbar { background: var(--verde-oscuro); color: rgba(255,255,255,0.85); font-size: 12.5px; padding: 7px 0; text-align: center; }
+  #topbar a { color: var(--dorado-claro); text-decoration: none; margin: 0 8px; }
+
+  nav { position: sticky; top: 0; z-index: 900; background: var(--blanco); border-bottom: 1.5px solid rgba(45,106,47,0.12); box-shadow: 0 2px 16px rgba(45,106,47,0.07); }
+  .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 68px; }
+  .logo-wrap { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--verde) 60%, var(--dorado) 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 26px; height: 26px; fill: #fff; }
+  .logo-text span:first-child { display: block; font-family: var(--font); font-size: 18px; font-weight: 800; color: var(--verde-oscuro); letter-spacing: -0.5px; line-height: 1; }
+  .logo-text span:last-child { font-family: var(--font-body); font-size: 10.5px; color: var(--dorado); letter-spacing: 0.08em; text-transform: uppercase; }
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-links a { font-family: var(--font); font-size: 13.5px; font-weight: 500; color: var(--gris-texto); text-decoration: none; padding: 8px 14px; border-radius: 8px; transition: .2s; }
+  .nav-links a:hover { background: var(--verde-palido); color: var(--verde); }
+  .nav-cta { background: var(--verde) !important; color: #fff !important; border-radius: 10px !important; box-shadow: 0 2px 10px rgba(45,106,47,0.3); }
+  .nav-cta:hover { background: var(--verde-oscuro) !important; }
+  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; }
+  .hamburger span { display: block; width: 24px; height: 2px; background: var(--gris-texto); border-radius: 2px; }
+  #mobile-menu { display: none; }
+
+  #inicio { background: linear-gradient(135deg, var(--verde-oscuro) 0%, var(--verde) 55%, #3a7d3c 100%); min-height: 90vh; display: flex; align-items: center; position: relative; overflow: hidden; }
+  .hero-bg { position: absolute; inset: 0; opacity: 0.04; background-image: radial-gradient(circle, #fff 1.5px, transparent 1.5px); background-size: 32px 32px; }
+  .hero-inner { max-width: 1200px; margin: 0 auto; padding: 5rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; position: relative; z-index: 2; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.12); color: var(--dorado-claro); border: 1px solid rgba(255,255,255,0.2); border-radius: 100px; font-family: var(--font); font-size: 12px; font-weight: 500; padding: 6px 16px; margin-bottom: 1.5rem; }
+  .hero-badge::before { content: "●"; font-size: 7px; color: #7CFC00; }
+  .hero-title { font-family: var(--font); font-size: clamp(2.2rem, 4vw, 3.4rem); font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 1.2rem; letter-spacing: -1px; }
+  .hero-title em { font-style: normal; color: var(--dorado-claro); }
+  .hero-sub { font-size: 16px; line-height: 1.7; color: rgba(255,255,255,0.8); margin-bottom: 2.4rem; max-width: 480px; }
+  .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn-primary { background: var(--dorado); color: var(--verde-oscuro); font-family: var(--font); font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 20px rgba(200,168,75,0.4); transition: transform .2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-ghost { background: rgba(255,255,255,0.12); color: #fff; font-family: var(--font); font-size: 14px; font-weight: 600; padding: 14px 28px; border-radius: 12px; text-decoration: none; border: 1.5px solid rgba(255,255,255,0.25); transition: background .2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-ghost:hover { background: rgba(255,255,255,0.22); }
+  .hero-stats { display: flex; gap: 2rem; margin-top: 3rem; }
+  .hero-stat strong { display: block; font-family: var(--font); font-size: 2rem; font-weight: 800; color: #fff; }
+  .hero-stat span { font-size: 12.5px; color: rgba(255,255,255,0.6); }
+  .hero-visual { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 24px; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; }
+  .hero-visual-emoji { font-size: 100px; }
+  .hero-visual-tag { margin-top: 1rem; font-family: var(--font); font-size: 15px; font-weight: 700; color: #fff; }
+  .hero-visual-sub { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+
+  section { padding: 5rem 0; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+  .section-label { font-family: var(--font); font-size: 11.5px; font-weight: 600; color: var(--verde); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: .6rem; }
+  .section-title { font-family: var(--font); font-size: clamp(1.8rem, 3vw, 2.5rem); font-weight: 800; color: var(--verde-oscuro); line-height: 1.15; margin-bottom: .8rem; letter-spacing: -0.5px; }
+  .section-sub { font-size: 15.5px; color: #666; max-width: 560px; line-height: 1.7; }
+  .section-head { margin-bottom: 3rem; }
+  .section-head.centered { text-align: center; }
+  .section-head.centered .section-sub { margin: 0 auto; }
+
+  #nosotros { background: var(--gris-suave); }
+  .nosotros-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
+  .nosotros-list { list-style: none; margin-top: 1.5rem; }
+  .nosotros-list li { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(45,106,47,0.08); font-size: 14.5px; }
+  .nosotros-list li::before { content: "✓"; width: 22px; height: 22px; flex-shrink: 0; background: var(--verde); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-top: 1px; }
+  .nosotros-img { background: linear-gradient(135deg, var(--verde-palido), #C8E6C9); border-radius: var(--radius-lg); height: 380px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 80px; border: 2px solid rgba(45,106,47,0.1); gap: 1rem; }
+  .nosotros-img p { font-family: var(--font); font-size: 14px; font-weight: 600; color: var(--verde); text-align: center; padding: 0 2rem; }
+
+  .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.5rem; }
+  .benefit-card { background: var(--blanco); border-radius: var(--radius-lg); padding: 1.8rem 1.5rem; border: 1.5px solid rgba(45,106,47,0.08); box-shadow: var(--sombra); transition: transform .25s; }
+  .benefit-card:hover { transform: translateY(-5px); }
+  .benefit-icon { width: 52px; height: 52px; border-radius: 14px; background: var(--verde-palido); display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 1rem; }
+  .benefit-title { font-family: var(--font); font-size: 15px; font-weight: 700; color: var(--verde-oscuro); margin-bottom: .4rem; }
+  .benefit-desc { font-size: 13.5px; color: #666; line-height: 1.65; }
+
+  #catalogo { background: var(--crema); }
+  .search-filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .search-input { font-family: var(--font-body); font-size: 14px; padding: 10px 18px; border: 1.5px solid rgba(45,106,47,0.2); border-radius: 100px; outline: none; min-width: 220px; background: #fff; transition: border-color .2s; }
+  .search-input:focus { border-color: var(--verde); }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 2rem; }
+  .filter-btn { font-family: var(--font); font-size: 13px; font-weight: 600; padding: 8px 18px; border-radius: 100px; border: 1.5px solid rgba(45,106,47,0.2); background: transparent; color: #555; cursor: pointer; transition: .2s; }
+  .filter-btn:hover, .filter-btn.active { background: var(--verde); color: #fff; border-color: var(--verde); }
+  .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
+  .product-card { background: var(--blanco); border-radius: var(--radius-lg); border: 1.5px solid rgba(45,106,47,0.08); box-shadow: var(--sombra); overflow: hidden; transition: transform .25s; display: flex; flex-direction: column; }
+  .product-card:hover { transform: translateY(-6px); }
+  .product-img { height: 180px; background: var(--verde-palido); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .product-img img { width: 100%; height: 100%; object-fit: cover; }
+  .product-img-placeholder { font-size: 64px; }
+  .product-cat { position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.92); color: var(--verde); font-family: var(--font); font-size: 10.5px; font-weight: 700; padding: 4px 10px; border-radius: 100px; }
+  .product-badge-new { position: absolute; top: 12px; right: 12px; background: var(--dorado); color: var(--verde-oscuro); font-family: var(--font); font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 100px; }
+  .product-body { padding: 1.2rem 1.3rem 1.4rem; flex: 1; display: flex; flex-direction: column; }
+  .product-name { font-family: var(--font); font-size: 15px; font-weight: 700; color: var(--verde-oscuro); margin-bottom: 4px; }
+  .product-desc { font-size: 12.5px; color: #888; line-height: 1.6; flex: 1; margin-bottom: .8rem; }
+  .product-footer { display: flex; align-items: center; justify-content: space-between; }
+  .product-price { font-family: var(--font); font-size: 18px; font-weight: 800; color: var(--verde); }
+  .product-price small { font-size: 11px; color: #aaa; font-weight: 400; display: block; }
+  .product-btn { background: var(--verde-palido); color: var(--verde); border: none; cursor: pointer; font-family: var(--font); font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 8px; transition: .2s; }
+  .product-btn:hover { background: var(--verde); color: #fff; }
+  .empty-state { grid-column: 1/-1; text-align: center; padding: 4rem; color: #aaa; font-family: var(--font); }
+  .loading-state { grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--verde); font-family: var(--font); }
+
+  #contacto { background: var(--verde-oscuro); }
+  #contacto .section-label { color: var(--dorado-claro); }
+  #contacto .section-title { color: #fff; }
+  #contacto .section-sub { color: rgba(255,255,255,0.65); }
+  .contact-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 4rem; align-items: start; }
+  .contact-info-item { display: flex; gap: 16px; margin-bottom: 1.6rem; padding-bottom: 1.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .contact-info-item:last-child { border: none; }
+  .contact-icon { width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .contact-label { font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--dorado-claro); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .contact-val { font-size: 14.5px; color: rgba(255,255,255,0.85); line-height: 1.5; }
+  .contact-form-wrap { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 2.2rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label { font-family: var(--font); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.04em; }
+  .form-group input, .form-group select, .form-group textarea { font-family: var(--font-body); font-size: 14px; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 10px 14px; color: #fff; background: rgba(255,255,255,0.07); outline: none; transition: border-color .2s; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--dorado); }
+  .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.3); }
+  .form-group select option { background: var(--verde-oscuro); color: #fff; }
+  .btn-verde { background: var(--verde); color: #fff; font-family: var(--font); font-size: 13.5px; font-weight: 700; padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; transition: background .2s; }
+  .btn-verde:hover { background: var(--verde-oscuro); }
+  .wa-btn { display: inline-flex; align-items: center; gap: 10px; background: #25D366; color: #fff; font-family: var(--font); font-size: 14px; font-weight: 700; padding: 13px 26px; border-radius: 12px; text-decoration: none; margin-top: 1.5rem; width: 100%; justify-content: center; transition: transform .2s; }
+  .wa-btn:hover { transform: translateY(-2px); }
+
+  footer { background: #0F2B10; color: rgba(255,255,255,0.55); padding: 3rem 0 1.5rem; }
+  .footer-inner { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 3rem; margin-bottom: 2rem; }
+  .footer-logo { font-family: var(--font); font-size: 22px; font-weight: 800; color: #fff; margin-bottom: .5rem; }
+  .footer-logo span { color: var(--dorado); }
+  .footer-tagline { font-size: 13px; color: rgba(255,255,255,0.45); max-width: 260px; line-height: 1.6; }
+  .footer-col h4 { font-family: var(--font); font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem; }
+  .footer-col a { display: block; font-size: 13.5px; color: rgba(255,255,255,0.45); text-decoration: none; margin-bottom: 7px; transition: color .2s; }
+  .footer-col a:hover { color: var(--dorado-claro); }
+  .footer-bottom { max-width: 1200px; margin: 0 auto; padding: 1.2rem 2rem 0; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; }
+  .footer-bottom a { color: var(--dorado); text-decoration: none; }
+
+  /* ── SECCIÓN DETALLE PRODUCTO ── */
+  #producto-detalle { background: linear-gradient(180deg, var(--gris-suave) 0%, var(--crema) 100%); padding: 5rem 0; display: none; scroll-margin-top: 80px; }
+  #producto-detalle.visible { display: block; animation: fadeInUp .5s ease; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .pd-back { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--verde); text-decoration: none; margin-bottom: 1.5rem; padding: 8px 16px; border-radius: 100px; background: var(--blanco); border: 1.5px solid rgba(45,106,47,0.15); transition: .2s; cursor: pointer; }
+  .pd-back:hover { background: var(--verde); color: #fff; }
+  .pd-card { background: var(--blanco); border-radius: var(--radius-lg); box-shadow: var(--sombra); overflow: hidden; display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; border: 1.5px solid rgba(45,106,47,0.08); }
+  .pd-gallery { background: var(--gris-suave); padding: 2rem; display: flex; flex-direction: column; gap: 1rem; }
+  .pd-main-img { width: 100%; aspect-ratio: 1/1; border-radius: var(--radius); background: var(--verde-palido); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .pd-main-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+  .pd-main-img img:hover { transform: scale(1.04); }
+  .pd-main-img .pd-emoji { font-size: 140px; }
+  .pd-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .pd-thumb { aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; background: var(--verde-palido); display: flex; align-items: center; justify-content: center; transition: .2s; }
+  .pd-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .pd-thumb.active { border-color: var(--verde); box-shadow: 0 2px 10px rgba(45,106,47,0.25); }
+  .pd-thumb:hover { border-color: var(--verde-claro); }
+  .pd-info { padding: 2.5rem; display: flex; flex-direction: column; }
+  .pd-cat { display: inline-block; align-self: flex-start; font-family: var(--font); font-size: 11px; font-weight: 700; color: var(--verde); background: var(--verde-palido); padding: 5px 14px; border-radius: 100px; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .08em; }
+  .pd-name { font-family: var(--font); font-size: 28px; font-weight: 800; color: var(--verde-oscuro); line-height: 1.2; margin-bottom: .8rem; letter-spacing: -.5px; }
+  .pd-price-row { display: flex; align-items: baseline; gap: 12px; padding: 1.2rem 0; border-top: 1.5px solid rgba(45,106,47,0.08); border-bottom: 1.5px solid rgba(45,106,47,0.08); margin-bottom: 1.5rem; }
+  .pd-price { font-family: var(--font); font-size: 36px; font-weight: 800; color: var(--verde); }
+  .pd-unidad { font-size: 13px; color: #999; }
+  .pd-section-title { font-family: var(--font); font-size: 12px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .6rem; }
+  .pd-desc { font-size: 14.5px; color: #555; line-height: 1.75; margin-bottom: 1.5rem; }
+  .pd-specs { background: var(--gris-suave); border-radius: 12px; padding: 1.2rem 1.4rem; margin-bottom: 1.5rem; }
+  .pd-spec-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(45,106,47,0.08); font-size: 13.5px; }
+  .pd-spec-row:last-child { border: none; }
+  .pd-spec-row span:first-child { color: #888; font-weight: 500; }
+  .pd-spec-row span:last-child { color: var(--verde-oscuro); font-weight: 700; }
+  .pd-actions { display: flex; gap: 12px; margin-top: auto; flex-wrap: wrap; }
+  .pd-wa { flex: 1; min-width: 200px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #25D366; color: #fff; font-family: var(--font); font-size: 14.5px; font-weight: 700; padding: 14px 22px; border-radius: 12px; text-decoration: none; transition: transform .2s; box-shadow: 0 4px 16px rgba(37,211,102,0.3); }
+  .pd-wa:hover { transform: translateY(-2px); }
+  .pd-stock { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--verde); font-weight: 600; margin-bottom: 1rem; }
+  .pd-stock::before { content: "●"; color: #4CAF50; }
+  @media(max-width:780px){ .pd-card{grid-template-columns:1fr;} .pd-info{padding:1.8rem;} .pd-name{font-size:22px;} .pd-price{font-size:28px;} }
+
+  .wa-float { position: fixed; bottom: 28px; right: 28px; z-index: 800; background: #25D366; color: #fff; width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 24px rgba(37,211,102,0.4); text-decoration: none; font-size: 26px; transition: transform .2s; animation: pulse-wa 2.5s infinite; }
+  .wa-float:hover { transform: scale(1.1); }
+  @keyframes pulse-wa { 0%,100%{box-shadow:0 4px 24px rgba(37,211,102,0.4)} 50%{box-shadow:0 4px 32px rgba(37,211,102,0.7),0 0 0 10px rgba(37,211,102,0.1)} }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); z-index: 9999; background: var(--verde); color: #fff; font-family: var(--font); font-size: 14px; font-weight: 600; padding: 14px 24px; border-radius: 12px; box-shadow: 0 8px 30px rgba(45,106,47,0.35); opacity: 0; transition: .35s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  @media(max-width:900px){
+    .hero-inner{grid-template-columns:1fr; text-align:center;}
+    .hero-img-wrap{display:none;}
+    .hero-btns{justify-content:center;}
+    .hero-stats{justify-content:center;}
+    .nosotros-grid{grid-template-columns:1fr;}
+    .nosotros-img{display:none;}
+    .contact-grid{grid-template-columns:1fr;}
+    .footer-inner{grid-template-columns:1fr;gap:2rem;}
+    .footer-bottom{flex-direction:column;gap:8px;text-align:center;}
+  }
+  @media(max-width:640px){
+    .nav-links{display:none;}
+    .hamburger{display:flex;}
+    #mobile-menu.open{display:flex;flex-direction:column;background:#fff;padding:1rem 1.5rem 1.5rem;border-top:1px solid rgba(45,106,47,0.1);}
+    #mobile-menu a{font-family:var(--font);font-size:15px;font-weight:600;color:var(--gris-texto);text-decoration:none;padding:12px 0;border-bottom:1px solid rgba(45,106,47,0.07);}
+    section{padding:3.5rem 0;}
+    .products-grid{grid-template-columns:1fr 1fr;}
+    .form-grid{grid-template-columns:1fr;}
+  }
+  @media(max-width:440px){
+    .products-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  📍 Lima, Perú &nbsp;|&nbsp;
+  <a href="tel:+51999999999" id="tb-tel">📞 +51 999 999 999</a> &nbsp;|&nbsp;
+  <a href="mailto:ventasfullagroperu@gmail.com" id="tb-email">✉ ventasfullagroperu@gmail.com</a>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <a class="logo-wrap" href="#inicio">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C9 2 6 4 5 7c-1 2-1 5 1 7 1 1 2 2 2 3H8v1h8v-1h-.5c0-1 1-2 2-3 2-2 2-5 1-7C17.5 4 15 2 12 2zm0 2c2 0 4 1.5 4.5 3.5.5 1.5.3 3.5-.8 4.8-1.2 1.3-1.7 2.7-1.7 3.7h-4c0-1-.5-2.4-1.7-3.7C7.3 11 7 9 7.5 7.5 8 5.5 10 4 12 4z"/><path d="M10 18h4v2h-4z"/></svg>
+      </div>
+      <div class="logo-text">
+        <span>FullAgro Perú</span>
+        <span>S.A.C. — Soluciones Agropecuarias</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="#inicio">Inicio</a>
+      <a href="#nosotros">Nosotros</a>
+      <a href="#catalogo">Catálogo</a>
+      <a href="#contacto">Contacto</a>
+      <a href="admin.html" class="nav-cta">⚙ Admin</a>
+    </div>
+    <div class="hamburger" id="menu-toggle">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+  <div id="mobile-menu">
+    <a href="#inicio">Inicio</a>
+    <a href="#nosotros">Nosotros</a>
+    <a href="#catalogo">Catálogo</a>
+    <a href="#contacto">Contacto</a>
+    <a href="admin.html">⚙ Admin</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="inicio" style="padding:0;">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-badge">Distribución agropecuaria en todo el Perú</div>
+      <h1 class="hero-title" id="hero-titulo">Todo lo que tu campo<br>necesita para <em>crecer</em></h1>
+      <p class="hero-sub" id="hero-subtitulo">Fertilizantes, agroquímicos, semillas, herramientas y más. Calidad certificada con los mejores precios del mercado.</p>
+      <div class="hero-btns">
+        <a href="#catalogo" class="btn-primary">Ver catálogo →</a>
+        <a href="#contacto" class="btn-ghost">Consultar precios</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><strong id="stat-productos">+500</strong><span>Productos</span></div>
+        <div class="hero-stat"><strong id="stat-anios">+12</strong><span>Años de exp.</span></div>
+        <div class="hero-stat"><strong id="stat-clientes">+1,800</strong><span>Clientes</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-visual-emoji">🌾</div>
+      <div class="hero-visual-tag">FullAgro Perú S.A.C.</div>
+      <div class="hero-visual-sub">Calidad garantizada desde 2012</div>
+    </div>
+  </div>
+</section>
+
+<!-- NOSOTROS -->
+<section id="nosotros">
+  <div class="container">
+    <div class="nosotros-grid">
+      <div>
+        <div class="section-label">¿Quiénes somos?</div>
+        <h2 class="section-title" id="nosotros-titulo">Más de 12 años impulsando la agricultura peruana</h2>
+        <p class="section-sub" id="nosotros-texto">FullAgro Perú S.A.C. es una empresa 100% peruana dedicada a la comercialización de insumos agropecuarios de alta calidad, respaldada por alianzas con las mejores marcas del sector.</p>
+        <ul class="nosotros-list">
+          <li>Productos certificados y de alta efectividad</li>
+          <li>Asesoría técnica gratuita para nuestros clientes</li>
+          <li>Entrega en Lima y despacho nacional</li>
+          <li>Precios mayoristas para grandes productores</li>
+          <li>Stock permanente todo el año</li>
+        </ul>
+      </div>
+      <div class="nosotros-img">
+        🌿
+        <p>Empresa 100% peruana al servicio del campo</p>
+      </div>
+    </div>
+    <div style="height:3.5rem;"></div>
+    <div class="section-head centered">
+      <div class="section-label">Por qué elegirnos</div>
+      <h2 class="section-title">Nuestras ventajas</h2>
+    </div>
+    <div class="benefits-grid">
+      <div class="benefit-card"><div class="benefit-icon">🚚</div><div class="benefit-title">Envío a todo el Perú</div><div class="benefit-desc">Entregas coordinadas a todas las regiones con seguimiento en tiempo real.</div></div>
+      <div class="benefit-card"><div class="benefit-icon">🏆</div><div class="benefit-title">Calidad garantizada</div><div class="benefit-desc">Todos nuestros productos cuentan con registro SENASA vigente.</div></div>
+      <div class="benefit-card"><div class="benefit-icon">💬</div><div class="benefit-title">Asesoría técnica</div><div class="benefit-desc">Ingenieros agrónomos a tu disposición sin costo adicional.</div></div>
+      <div class="benefit-card"><div class="benefit-icon">💰</div><div class="benefit-title">Precios competitivos</div><div class="benefit-desc">Precios especiales por volumen. Consulta nuestras tarifas mayoristas.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CATÁLOGO -->
+<section id="catalogo">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-label">Productos</div>
+      <h2 class="section-title">Catálogo de productos</h2>
+      <p class="section-sub">Filtra por categoría o busca el producto que necesitas.</p>
+    </div>
+    <div class="search-filter-row">
+      <input class="search-input" type="text" id="search-input" placeholder="🔍  Buscar producto...">
+      <span style="font-family:var(--font);font-size:12px;color:#aaa;" id="product-count"></span>
+    </div>
+    <div class="filter-row" id="filter-row">
+      <button class="filter-btn active" data-cat="todos">Todos</button>
+      <button class="filter-btn" data-cat="fertilizantes">Fertilizantes</button>
+      <button class="filter-btn" data-cat="agroquimicos">Agroquímicos</button>
+      <button class="filter-btn" data-cat="semillas">Semillas</button>
+      <button class="filter-btn" data-cat="herramientas">Herramientas</button>
+      <button class="filter-btn" data-cat="veterinaria">Veterinaria</button>
+    </div>
+    <div class="products-grid" id="products-grid">
+      <div class="loading-state">⏳ Cargando productos...</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section id="contacto">
+  <div class="container">
+    <div class="contact-grid">
+      <div>
+        <div class="section-label">Contáctanos</div>
+        <h2 class="section-title">¿Listo para hacer crecer tu campo?</h2>
+        <p class="section-sub" style="color:rgba(255,255,255,0.65);">Estamos para asesorarte con la mejor solución agropecuaria.</p>
+        <div style="margin-top:2.5rem;">
+          <div class="contact-info-item">
+            <div class="contact-icon">📍</div>
+            <div><div class="contact-label">Dirección</div><div class="contact-val" id="c-direccion">Lima, Perú — Despacho nacional</div></div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-icon">📞</div>
+            <div><div class="contact-label">WhatsApp / Teléfono</div><div class="contact-val" id="c-telefono">+51 999 999 999</div></div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-icon">✉</div>
+            <div><div class="contact-label">Correo</div><div class="contact-val" id="c-correo">ventasfullagroperu@gmail.com</div></div>
+          </div>
+        </div>
+        <a href="https://wa.me/51999999999" class="wa-btn" id="wa-link">💬 Escribir por WhatsApp</a>
+      </div>
+      <div class="contact-form-wrap">
+        <div style="font-family:var(--font);font-size:17px;font-weight:700;color:#fff;margin-bottom:1.5rem;">Envíanos un mensaje</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nombre</label><input type="text" id="c-nombre" placeholder="Tu nombre"></div>
+          <div class="form-group"><label>Teléfono</label><input type="tel" id="c-tel" placeholder="+51 9xx xxx xxx"></div>
+          <div class="form-group full"><label>Correo electrónico</label><input type="email" id="c-email-input" placeholder="correo@ejemplo.com"></div>
+          <div class="form-group full">
+            <label>Tipo de consulta</label>
+            <select id="c-tipo"><option value="">Selecciona...</option><option>Consulta de precios</option><option>Pedido / cotización</option><option>Asesoría técnica</option><option>Información general</option></select>
+          </div>
+          <div class="form-group full"><label>Mensaje</label><textarea id="c-msg" rows="4" placeholder="Escribe tu consulta..."></textarea></div>
+        </div>
+        <button class="btn-verde" style="margin-top:1.2rem;width:100%;padding:13px;" onclick="enviarFormulario()">Enviar por WhatsApp →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">Full<span>Agro</span> Perú</div>
+      <p class="footer-tagline">Soluciones agropecuarias integrales para el campo peruano desde 2012.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navegación</h4>
+      <a href="#inicio">Inicio</a><a href="#nosotros">Nosotros</a><a href="#catalogo">Catálogo</a><a href="#contacto">Contacto</a>
+    </div>
+    <div class="footer-col">
+      <h4>Categorías</h4>
+      <a href="#catalogo">Fertilizantes</a><a href="#catalogo">Agroquímicos</a><a href="#catalogo">Semillas</a><a href="#catalogo">Herramientas</a><a href="#catalogo">Veterinaria</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 FullAgro Perú S.A.C.</span>
+    <a href="admin.html">⚙ Panel Admin</a>
+  </div>
+</footer>
+
+<a href="https://wa.me/51999999999" class="wa-float" id="wa-float">💬</a>
+<div class="toast" id="toast"></div>
+
+<!-- SECCIÓN DETALLE DE PRODUCTO -->
+<section id="producto-detalle">
+  <div class="container">
+    <a class="pd-back" onclick="cerrarDetalle()">← Volver al catálogo</a>
+    <div class="pd-card">
+      <div class="pd-gallery">
+        <div class="pd-main-img" id="pd-main-img"></div>
+        <div class="pd-thumbs" id="pd-thumbs"></div>
+      </div>
+      <div class="pd-info">
+        <span class="pd-cat" id="pd-cat"></span>
+        <h2 class="pd-name" id="pd-name"></h2>
+        <div class="pd-stock">En stock — Despacho inmediato</div>
+        <div class="pd-price-row">
+          <span class="pd-price" id="pd-price"></span>
+          <span class="pd-unidad" id="pd-unidad"></span>
+        </div>
+        <div class="pd-section-title">Descripción</div>
+        <p class="pd-desc" id="pd-desc"></p>
+        <div class="pd-section-title">Especificaciones</div>
+        <div class="pd-specs" id="pd-specs"></div>
+        <div class="pd-actions">
+          <a href="#" class="pd-wa" id="pd-wa" target="_blank">💬 Cotizar por WhatsApp</a>
+          <button class="prod-modal-cerrar" onclick="cerrarDetalle()" style="background:var(--gris-suave);color:#666;font-family:var(--font);font-size:14px;font-weight:600;padding:14px 22px;border-radius:12px;border:none;cursor:pointer;">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<script>
+// ── SUPABASE CONFIG ──
+const SUPABASE_URL = 'https://uoicsiuspkqyjtqtfytq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvaWNzaXVzcGtxeWp0cXRmeXRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNDU5NDAsImV4cCI6MjA5MjcyMTk0MH0.lvO0WaYD_KGE_J8HyHiwHzg5DxeyxMEpDjSgDVd0Y_s';
+const WA_NUMBER = '51999999999';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allProductos = [];
+let activeCat = 'todos';
+
+// ── CARGAR PRODUCTOS ──
+async function cargarProductos() {
+  try {
+    const { data, error } = await db.from('productos').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    allProductos = data || [];
+  } catch (e) {
+    console.error('Error cargando productos:', e);
+    allProductos = [];
+  }
+  renderProductos();
+}
+
+// ── CARGAR CONFIG ──
+async function cargarConfig() {
+  try {
+    const { data } = await db.from('config').select('*');
+    if (!data) return;
+    const cfg = {};
+    data.forEach(r => { cfg[r.clave] = r.valor; });
+    if (cfg.telefono) {
+      document.getElementById('c-telefono').textContent = cfg.telefono;
+      document.getElementById('tb-tel').textContent = '📞 ' + cfg.telefono;
+      const num = cfg.telefono.replace(/\D/g, '');
+      document.getElementById('wa-float').href = `https://wa.me/${num}`;
+      document.getElementById('wa-link').href = `https://wa.me/${num}`;
+    }
+    if (cfg.correo) {
+      document.getElementById('c-correo').textContent = cfg.correo;
+      document.getElementById('tb-email').textContent = '✉ ' + cfg.correo;
+    }
+    if (cfg.direccion) document.getElementById('c-direccion').textContent = cfg.direccion;
+    if (cfg.hero_titulo) document.getElementById('hero-titulo').innerHTML = cfg.hero_titulo;
+    if (cfg.hero_subtitulo) document.getElementById('hero-subtitulo').textContent = cfg.hero_subtitulo;
+    if (cfg.nosotros_titulo) document.getElementById('nosotros-titulo').textContent = cfg.nosotros_titulo;
+    if (cfg.nosotros_texto) document.getElementById('nosotros-texto').textContent = cfg.nosotros_texto;
+    if (cfg.stat_productos) document.getElementById('stat-productos').textContent = cfg.stat_productos;
+    if (cfg.stat_anios) document.getElementById('stat-anios').textContent = cfg.stat_anios;
+    if (cfg.stat_clientes) document.getElementById('stat-clientes').textContent = cfg.stat_clientes;
+  } catch(e) {
+    console.error('Error cargando config:', e);
+  }
+}
+
+// ── RENDER PRODUCTOS ──
+function renderProductos() {
+  const grid = document.getElementById('products-grid');
+  const busqueda = document.getElementById('search-input').value.toLowerCase();
+  const filtered = allProductos.filter(p => {
+    const matchCat = activeCat === 'todos' || p.categoria === activeCat;
+    const matchQ = !busqueda || p.nombre.toLowerCase().includes(busqueda) || (p.descripcion||'').toLowerCase().includes(busqueda);
+    return matchCat && matchQ;
+  });
+  document.getElementById('product-count').textContent = filtered.length + ' producto' + (filtered.length !== 1 ? 's' : '');
+  if (!filtered.length) {
+    grid.innerHTML = allProductos.length === 0
+      ? '<div class="empty-state">📦 Próximamente agregaremos productos. ¡Contáctanos para consultas!</div>'
+      : '<div class="empty-state">🔍 No se encontraron productos</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(p => {
+    const imgHtml = p.imagen_url
+      ? `<img src="${p.imagen_url}" alt="${p.nombre}" loading="lazy">`
+      : `<span class="product-img-placeholder">${p.emoji || '📦'}</span>`;
+    return `
+    <div class="product-card" onclick="abrirDetalle('${p.id}')" style="cursor:pointer;">
+      <div class="product-img" style="${!p.imagen_url ? 'background:'+catColor(p.categoria)+';' : ''}">
+        ${imgHtml}
+        <span class="product-cat">${catLabel(p.categoria)}</span>
+        ${p.nuevo ? '<span class="product-badge-new">NUEVO</span>' : ''}
+      </div>
+      <div class="product-body">
+        <div class="product-name">${p.nombre}</div>
+        <div class="product-desc">${p.descripcion || ''}</div>
+        <div class="product-footer">
+          <div class="product-price">S/ ${parseFloat(p.precio).toFixed(2)}<small>${p.unidad || ''}</small></div>
+          <button class="product-btn" onclick="event.stopPropagation();cotizar('${p.nombre.replace(/'/g,"\\'")}','${p.precio}')">Cotizar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ABRIR DETALLE DE PRODUCTO ──
+function abrirDetalle(id) {
+  const p = allProductos.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  // Galería: arma lista de imágenes (soporta imagen_url + imagenes[] adicionales)
+  const imgs = [];
+  if (p.imagen_url) imgs.push(p.imagen_url);
+  if (Array.isArray(p.imagenes)) p.imagenes.forEach(u => { if (u && !imgs.includes(u)) imgs.push(u); });
+
+  const mainImg = document.getElementById('pd-main-img');
+  const thumbs = document.getElementById('pd-thumbs');
+
+  if (imgs.length === 0) {
+    mainImg.innerHTML = `<span class="pd-emoji" style="background:${catColor(p.categoria)};width:100%;height:100%;display:flex;align-items:center;justify-content:center;">${p.emoji || '📦'}</span>`;
+    thumbs.innerHTML = '';
+  } else {
+    mainImg.innerHTML = `<img src="${imgs[0]}" alt="${p.nombre}" id="pd-main-img-tag">`;
+    thumbs.innerHTML = imgs.map((u, i) => `
+      <div class="pd-thumb ${i === 0 ? 'active' : ''}" onclick="cambiarImagen('${u}', this)">
+        <img src="${u}" alt="Vista ${i+1}">
+      </div>`).join('');
+  }
+
+  document.getElementById('pd-cat').textContent = catLabel(p.categoria);
+  document.getElementById('pd-name').textContent = p.nombre;
+  document.getElementById('pd-price').textContent = `S/ ${parseFloat(p.precio).toFixed(2)}`;
+  document.getElementById('pd-unidad').textContent = p.unidad ? `Precio ${p.unidad}` : '';
+  document.getElementById('pd-desc').textContent = p.descripcion || 'Sin descripción disponible.';
+
+  // Especificaciones
+  const specs = [
+    ['Categoría', catLabel(p.categoria)],
+    ['Presentación', p.unidad || 'Consultar'],
+    ['Marca', p.marca || 'FullAgro'],
+    ['Disponibilidad', 'En stock'],
+    ['Registro SENASA', p.senasa || 'Vigente'],
+  ];
+  document.getElementById('pd-specs').innerHTML = specs.map(s =>
+    `<div class="pd-spec-row"><span>${s[0]}</span><span>${s[1]}</span></div>`
+  ).join('');
+
+  // WhatsApp
+  const waNum = document.getElementById('wa-float').href.match(/wa\.me\/(\d+)/);
+  const num = waNum ? waNum[1] : WA_NUMBER;
+  document.getElementById('pd-wa').href = `https://wa.me/${num}?text=${encodeURIComponent(`Hola, quiero cotizar: ${p.nombre} (S/ ${p.precio}). ¿Tienen stock?`)}`;
+
+  // Mostrar y desplazar
+  const sec = document.getElementById('producto-detalle');
+  sec.classList.add('visible');
+  setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+function cambiarImagen(url, el) {
+  document.getElementById('pd-main-img').innerHTML = `<img src="${url}" alt="Vista">`;
+  document.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function cerrarDetalle() {
+  document.getElementById('producto-detalle').classList.remove('visible');
+  document.getElementById('catalogo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Cerrar con Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') cerrarDetalle();
+});
+
+function catColor(cat) {
+  return {fertilizantes:'#E8F5E9',agroquimicos:'#FFF3E0',semillas:'#F3E5F5',herramientas:'#E3F2FD',veterinaria:'#FFF8E1'}[cat] || '#F5F5F0';
+}
+function catLabel(cat) {
+  return {fertilizantes:'Fertilizante',agroquimicos:'Agroquímico',semillas:'Semillas',herramientas:'Herramientas',veterinaria:'Veterinaria'}[cat] || cat;
+}
+function cotizar(nombre, precio) {
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola, quiero cotizar: ${nombre} (S/ ${precio}). ¿Tienen stock?`)}`, '_blank');
+}
+
+// ── FILTROS ──
+document.getElementById('filter-row').addEventListener('click', e => {
+  if (!e.target.classList.contains('filter-btn')) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  activeCat = e.target.dataset.cat;
+  renderProductos();
+});
+document.getElementById('search-input').addEventListener('input', renderProductos);
+
+// ── FORMULARIO ──
+function enviarFormulario() {
+  const nombre = document.getElementById('c-nombre').value.trim();
+  const msg = document.getElementById('c-msg').value.trim();
+  if (!nombre || !msg) { alert('Completa al menos tu nombre y mensaje.'); return; }
+  const wa = document.getElementById('wa-float').href.match(/wa\.me\/(\d+)/);
+  const num = wa ? wa[1] : WA_NUMBER;
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(`Hola, soy ${nombre}. ${msg}`)}`, '_blank');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── HAMBURGER ──
+document.getElementById('menu-toggle').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('open');
+});
+
+// ── INIT ──
+cargarProductos();
+cargarConfig();
+</script>
+</body>
+</html>
